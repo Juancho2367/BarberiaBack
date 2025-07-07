@@ -11,15 +11,15 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://tu-proyecto-frontend.vercel.app',
-    'https://barberia-front.vercel.app',
-    'https://barberia-app.vercel.app'
-  ],
+  origin: true,
   credentials: true
 }));
 app.use(express.json());
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'Barbería API - Servidor funcionando correctamente' });
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
