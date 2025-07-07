@@ -25,22 +25,4 @@ router.patch('/:id', auth, updateAppointment);
 // Cancel appointment (both client and barber)
 router.delete('/:id', auth, cancelAppointment);
 
-// GET /api/appointments
-router.get('/', async (req, res) => {
-  try {
-    res.json({ message: 'Lista de citas' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error al obtener las citas' });
-  }
-});
-
-// POST /api/appointments
-router.post('/', async (req, res) => {
-  try {
-    res.status(201).json({ message: 'Cita creada' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error al crear la cita' });
-  }
-});
-
 export default router; 
