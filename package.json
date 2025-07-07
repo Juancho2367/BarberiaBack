@@ -5,9 +5,9 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "node --loader ts-node/esm src/index.ts",
+    "dev": "node --loader ts-node/esm src/server.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/server.js",
     "test": "jest",
     "seed": "node --loader ts-node/esm src/scripts/seed.ts",
     "vercel-build": "echo 'Server build completed'"
