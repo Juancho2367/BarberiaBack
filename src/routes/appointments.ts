@@ -10,6 +10,9 @@ import {
 
 const router = express.Router();
 
+// Get all appointments (for dashboard)
+router.get('/', auth, getUserAppointments);
+
 // Get available time slots for a barber on a specific date
 router.get('/available-slots', auth, getAvailableSlots);
 

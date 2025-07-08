@@ -15,6 +15,7 @@ router.post('/register', register);
 router.post('/login', login);
 
 // Protected routes
+router.get('/me', auth, getProfile);
 router.get('/profile', auth, getProfile);
 router.patch('/profile', auth, updateProfile);
 
