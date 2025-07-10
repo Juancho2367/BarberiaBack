@@ -1,40 +1,45 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
 import { connectDB } from './config/database.js';
+import { 
+  rateLimiter, 
+  securityConfig, 
+  getEnvironmentConfig 
+} from './config/security.js';
+import { corsMiddleware, corsErrorHandler, corsLogging } from './middleware/cors.js';
 import appointmentRoutes from './routes/appointments.js';
 import userRoutes from './routes/users.js';
 
+// Load environment variables
 dotenv.config();
 
 const app = express();
 
-// CORS configuration - Simple and permissive
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['*'],
-  credentials: false
-}));
+// Get environment-specific configuration
+const envConfig = getEnvironmentConfig();
 
-app.use(express.json());
+// Security middleware - Apply before CORS
+app.use(helmet(securityConfig));
 
-// Manual CORS headers for all requests
+// Rate limiting - Apply to all routes
+app.use(rateLimiter);
+
+// CORS logging middleware
+app.use(corsLogging);
+
+// Custom CORS middleware - Apply with environment-specific settings
+app.use(corsMiddleware);
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging middleware for debugging
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
-
-// Logging middleware for debugging
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'} - IP: ${req.ip}`);
   next();
 });
 
@@ -43,7 +48,14 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'Barbería API - Servidor funcionando correctamente',
     version: '1.0.0',
-    timestamp: new Date().toISOString()
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    cors: {
+      origin: req.headers.origin,
+      allowedOrigins: envConfig.isProduction ? 
+        ['https://barberia-front.vercel.app'] : 
+        ['http://localhost:3000', 'https://barberia-front.vercel.app']
+    }
   });
 });
 
@@ -51,9 +63,12 @@ app.get('/', (req, res) => {
 app.get('/api', (req, res) => {
   res.json({ 
     message: 'Barbería API v1.0.0',
+    environment: process.env.NODE_ENV || 'development',
     endpoints: {
       users: '/api/users',
-      appointments: '/api/appointments'
+      appointments: '/api/appointments',
+      health: '/api/health',
+      corsTest: '/api/cors-test'
     },
     timestamp: new Date().toISOString()
   });
@@ -64,7 +79,14 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+    cors: {
+      origin: req.headers.origin,
+      method: req.method,
+      allowed: true
+    }
   });
 });
 
@@ -73,7 +95,12 @@ app.get('/api/cors-test', (req, res) => {
   res.status(200).json({ 
     message: 'CORS test successful',
     origin: req.headers.origin,
-    timestamp: new Date().toISOString()
+    method: req.method,
+    timestamp: new Date().toISOString(),
+    cors: {
+      allowed: true,
+      credentials: envConfig.corsOptions.credentials
+    }
   });
 });
 
@@ -82,7 +109,12 @@ app.post('/api/cors-test', (req, res) => {
     message: 'CORS POST test successful',
     body: req.body,
     origin: req.headers.origin,
-    timestamp: new Date().toISOString()
+    method: req.method,
+    timestamp: new Date().toISOString(),
+    cors: {
+      allowed: true,
+      credentials: envConfig.corsOptions.credentials
+    }
   });
 });
 
@@ -90,6 +122,7 @@ app.post('/api/cors-test', (req, res) => {
 app.get('/api/routes-test', (req, res) => {
   res.status(200).json({ 
     message: 'Routes test successful',
+    environment: process.env.NODE_ENV || 'development',
     availableRoutes: [
       'POST /api/users/register',
       'POST /api/users/login',
@@ -104,14 +137,80 @@ app.get('/api/routes-test', (req, res) => {
   });
 });
 
-// Routes
+// Debug endpoint to test all HTTP methods
+app.all('/api/debug', (req, res) => {
+  res.status(200).json({
+    method: req.method,
+    url: req.url,
+    headers: {
+      origin: req.headers.origin,
+      'user-agent': req.headers['user-agent'],
+      'content-type': req.headers['content-type'],
+      authorization: req.headers.authorization ? 'Bearer [HIDDEN]' : undefined
+    },
+    body: req.body,
+    query: req.query,
+    params: req.params,
+    cors: {
+      origin: req.headers.origin,
+      allowed: true
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+// API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/appointments', appointmentRoutes);
 
-// Error handling middleware
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ 
+    message: 'Route not found',
+    method: req.method,
+    url: req.originalUrl,
+    environment: process.env.NODE_ENV || 'development',
+    availableRoutes: [
+      'GET /api/health',
+      'GET /api/routes-test',
+      'GET /api/cors-test',
+      'POST /api/cors-test',
+      'ALL /api/debug',
+      'POST /api/users/register',
+      'POST /api/users/login',
+      'GET /api/users/me',
+      'PATCH /api/users/profile',
+      'GET /api/appointments',
+      'POST /api/appointments'
+    ],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// CORS error handling middleware
+app.use(corsErrorHandler);
+
+// General error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('Error:', err);
+  console.error('Stack:', err.stack);
+  
+  // Rate limit error handling
+  if (err.status === 429) {
+    return res.status(429).json({
+      error: 'Rate Limit Exceeded',
+      message: 'Too many requests from this IP',
+      retryAfter: err.headers?.['retry-after'] || '15 minutes',
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  res.status(err.status || 500).json({ 
+    error: 'Internal Server Error',
+    message: err.message || 'Something went wrong!',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Connect to MongoDB
