@@ -9,6 +9,7 @@ import {
   getEnvironmentConfig 
 } from './config/security.js';
 import { corsMiddleware, corsErrorHandler, corsLogging } from './middleware/cors.js';
+import { publicRouteHandler, getPublicRoutes } from './middleware/publicRoutes.js';
 import appointmentRoutes from './routes/appointments.js';
 import userRoutes from './routes/users.js';
 
@@ -43,6 +44,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Public routes handler - Must be before any auth middleware
+app.use(publicRouteHandler);
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({ 
@@ -53,8 +57,12 @@ app.get('/', (req, res) => {
     cors: {
       origin: req.headers.origin,
       allowedOrigins: envConfig.isProduction ? 
-        ['https://barberia-front.vercel.app'] : 
-        ['http://localhost:3000', 'https://barberia-front.vercel.app']
+        ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'] : 
+        ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
+    },
+    frontend: {
+      primary: 'https://barberia-front.vercel.app',
+      current: 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'
     }
   });
 });
@@ -65,10 +73,26 @@ app.get('/api', (req, res) => {
     message: 'Barbería API v1.0.0',
     environment: process.env.NODE_ENV || 'development',
     endpoints: {
-      users: '/api/users',
-      appointments: '/api/appointments',
-      health: '/api/health',
-      corsTest: '/api/cors-test'
+      public: [
+        '/api/health',
+        '/api/cors-test',
+        '/api/routes-test',
+        '/api/debug',
+        '/api/users/register',
+        '/api/users/login'
+      ],
+      protected: [
+        '/api/users/me',
+        '/api/users/profile',
+        '/api/appointments'
+      ]
+    },
+    cors: {
+      origin: req.headers.origin,
+      credentials: true,
+      allowedOrigins: envConfig.isProduction ? 
+        ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'] : 
+        ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
     },
     timestamp: new Date().toISOString()
   });
@@ -85,7 +109,12 @@ app.get('/api/health', (req, res) => {
     cors: {
       origin: req.headers.origin,
       method: req.method,
-      allowed: true
+      allowed: true,
+      credentials: true
+    },
+    routes: {
+      public: getPublicRoutes().length,
+      total: getPublicRoutes().length + 6 // 6 rutas protegidas básicas
     }
   });
 });
@@ -99,7 +128,10 @@ app.get('/api/cors-test', (req, res) => {
     timestamp: new Date().toISOString(),
     cors: {
       allowed: true,
-      credentials: envConfig.corsOptions.credentials
+      credentials: envConfig.corsOptions.credentials,
+      allowedOrigins: envConfig.isProduction ? 
+        ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'] : 
+        ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
     }
   });
 });
@@ -113,7 +145,10 @@ app.post('/api/cors-test', (req, res) => {
     timestamp: new Date().toISOString(),
     cors: {
       allowed: true,
-      credentials: envConfig.corsOptions.credentials
+      credentials: envConfig.corsOptions.credentials,
+      allowedOrigins: envConfig.isProduction ? 
+        ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'] : 
+        ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
     }
   });
 });
@@ -123,9 +158,8 @@ app.get('/api/routes-test', (req, res) => {
   res.status(200).json({ 
     message: 'Routes test successful',
     environment: process.env.NODE_ENV || 'development',
-    availableRoutes: [
-      'POST /api/users/register',
-      'POST /api/users/login',
+    publicRoutes: getPublicRoutes(),
+    protectedRoutes: [
       'GET /api/users/me',
       'PATCH /api/users/profile',
       'GET /api/appointments',
@@ -142,6 +176,8 @@ app.all('/api/debug', (req, res) => {
   res.status(200).json({
     method: req.method,
     url: req.url,
+    path: req.path,
+    isPublicRoute: getPublicRoutes().includes(req.path),
     headers: {
       origin: req.headers.origin,
       'user-agent': req.headers['user-agent'],
@@ -169,20 +205,23 @@ app.use('*', (req, res) => {
     message: 'Route not found',
     method: req.method,
     url: req.originalUrl,
+    path: req.path,
     environment: process.env.NODE_ENV || 'development',
-    availableRoutes: [
-      'GET /api/health',
-      'GET /api/routes-test',
-      'GET /api/cors-test',
-      'POST /api/cors-test',
-      'ALL /api/debug',
-      'POST /api/users/register',
-      'POST /api/users/login',
+    publicRoutes: getPublicRoutes(),
+    protectedRoutes: [
       'GET /api/users/me',
       'PATCH /api/users/profile',
       'GET /api/appointments',
-      'POST /api/appointments'
+      'POST /api/appointments',
+      'PUT /api/appointments/:id',
+      'DELETE /api/appointments/:id'
     ],
+    cors: {
+      origin: req.headers.origin,
+      allowedOrigins: envConfig.isProduction ? 
+        ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'] : 
+        ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
+    },
     timestamp: new Date().toISOString()
   });
 });

@@ -26,6 +26,7 @@ export const corsOptions = {
       'http://localhost:3000',
       'http://localhost:3001',
       'https://barberia-front.vercel.app',
+      'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app',
       process.env.FRONTEND_URL
     ].filter(Boolean);
     
@@ -105,6 +106,7 @@ export const getEnvironmentConfig = () => {
         
         const productionOrigins = [
           'https://barberia-front.vercel.app',
+          'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app',
           process.env.FRONTEND_URL
         ].filter(Boolean);
         

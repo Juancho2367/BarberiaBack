@@ -9,12 +9,14 @@ export const corsMiddleware = (req: Request, res: Response, next: NextFunction) 
   const allowedOrigins = isProduction 
     ? [
         'https://barberia-front.vercel.app',
+        'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app',
         process.env.FRONTEND_URL
       ].filter(Boolean)
     : [
         'http://localhost:3000',
         'http://localhost:3001',
         'https://barberia-front.vercel.app',
+        'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app',
         process.env.FRONTEND_URL
       ].filter(Boolean);
 
@@ -89,8 +91,11 @@ export const corsErrorHandler = (err: any, req: Request, res: Response, next: Ne
       timestamp: new Date().toISOString(),
       details: {
         allowedOrigins: process.env.NODE_ENV === 'production' 
-          ? ['https://barberia-front.vercel.app']
-          : ['http://localhost:3000', 'https://barberia-front.vercel.app']
+          ? ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
+          : ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'],
+        requestMethod: req.method,
+        requestPath: req.path,
+        userAgent: req.headers['user-agent']
       }
     });
   }
@@ -107,7 +112,7 @@ export const corsLogging = (req: Request, res: Response, next: NextFunction) => 
   console.log(`[CORS] ${method} ${path} - Origin: ${origin || 'No origin'} - IP: ${req.ip}`);
   
   // Log CORS violations
-  if (origin && !['http://localhost:3000', 'https://barberia-front.vercel.app'].includes(origin)) {
+  if (origin && !['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'].includes(origin)) {
     console.warn(`[CORS WARNING] Unusual origin: ${origin} for ${method} ${path}`);
   }
   
