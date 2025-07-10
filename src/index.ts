@@ -8,7 +8,7 @@ import {
   securityConfig, 
   getEnvironmentConfig 
 } from './config/security.js';
-import { corsMiddleware, corsErrorHandler, corsLogging } from './middleware/cors.js';
+import { corsMiddleware, corsErrorHandler, corsLogging, getAllowedOrigins } from './middleware/cors.js';
 import { publicRouteHandler, getPublicRoutes } from './middleware/publicRoutes.js';
 import appointmentRoutes from './routes/appointments.js';
 import userRoutes from './routes/users.js';
@@ -56,9 +56,7 @@ app.get('/', (req, res) => {
     timestamp: new Date().toISOString(),
     cors: {
       origin: req.headers.origin,
-      allowedOrigins: envConfig.isProduction ? 
-        ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'] : 
-        ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
+      allowedOrigins: getAllowedOrigins()
     },
     frontend: {
       primary: 'https://barberia-front.vercel.app',
@@ -90,9 +88,7 @@ app.get('/api', (req, res) => {
     cors: {
       origin: req.headers.origin,
       credentials: true,
-      allowedOrigins: envConfig.isProduction ? 
-        ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'] : 
-        ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
+      allowedOrigins: getAllowedOrigins()
     },
     timestamp: new Date().toISOString()
   });
@@ -128,10 +124,8 @@ app.get('/api/cors-test', (req, res) => {
     timestamp: new Date().toISOString(),
     cors: {
       allowed: true,
-      credentials: envConfig.corsOptions.credentials,
-      allowedOrigins: envConfig.isProduction ? 
-        ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'] : 
-        ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
+      credentials: true,
+      allowedOrigins: getAllowedOrigins()
     }
   });
 });
@@ -145,10 +139,8 @@ app.post('/api/cors-test', (req, res) => {
     timestamp: new Date().toISOString(),
     cors: {
       allowed: true,
-      credentials: envConfig.corsOptions.credentials,
-      allowedOrigins: envConfig.isProduction ? 
-        ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'] : 
-        ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
+      credentials: true,
+      allowedOrigins: getAllowedOrigins()
     }
   });
 });
@@ -218,9 +210,7 @@ app.use('*', (req, res) => {
     ],
     cors: {
       origin: req.headers.origin,
-      allowedOrigins: envConfig.isProduction ? 
-        ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'] : 
-        ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
+      allowedOrigins: getAllowedOrigins()
     },
     timestamp: new Date().toISOString()
   });

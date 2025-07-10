@@ -1,85 +1,52 @@
 import { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 
-// CORS configuration following best practices
-export const corsMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const origin = req.headers.origin;
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  // Define allowed origins based on environment
-  const allowedOrigins = isProduction 
-    ? [
-        'https://barberia-front.vercel.app',
-        'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app',
-        process.env.FRONTEND_URL
-      ].filter(Boolean)
-    : [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'https://barberia-front.vercel.app',
-        'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app',
-        process.env.FRONTEND_URL
-      ].filter(Boolean);
+// Lista de orígenes permitidos
+const allowedOrigins = [
+  'https://barberia-front.vercel.app',
+  'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app',
+  'https://barberia-front-ctrp97bgn-juan-davids-projects-3cf28ed7.vercel.app' // Nueva URL del frontend
+];
 
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    // Check if origin is allowed
-    if (origin && allowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    } else if (!origin) {
-      // Allow requests with no origin (mobile apps, curl, etc.)
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    } else {
-      // Origin not allowed
-      console.warn(`CORS preflight blocked: ${origin}`);
-      return res.status(403).json({
-        error: 'CORS Error',
-        message: 'Origin not allowed',
-        origin,
-        timestamp: new Date().toISOString()
-      });
+// En desarrollo, permite localhost
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:3000', 'http://localhost:3001');
+}
+
+// Configuración CORS optimizada
+const corsOptions = {
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Permite solicitudes sin origen (ej. Postman, curl, mobile apps)
+    if (!origin) {
+      return callback(null, true);
     }
-
-    // Set CORS headers for preflight
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'Origin',
-      'Accept',
-      'Cache-Control',
-      'X-File-Name'
-    ].join(', '));
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, X-Requested-With');
     
-    return res.status(200).end();
-  }
-
-  // Handle actual requests
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (!origin) {
-    // Allow requests with no origin
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  } else {
-    // Origin not allowed
-    console.warn(`CORS request blocked: ${origin}`);
-    return res.status(403).json({
-      error: 'CORS Error',
-      message: 'Origin not allowed',
-      origin,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  // Set CORS headers for actual requests
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, X-Requested-With');
-
-  next();
+    // Verifica si el origen está en la lista blanca
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Permite credenciales (cookies, authorization headers)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Origin',
+    'Accept',
+    'Cache-Control',
+    'X-File-Name'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Requested-With'],
+  maxAge: 86400, // 24 horas
+  optionsSuccessStatus: 200 // Algunos navegadores legacy necesitan 200 en lugar de 204
 };
+
+// Middleware CORS principal usando la librería cors
+export const corsMiddleware = cors(corsOptions);
 
 // CORS error handler
 export const corsErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
@@ -90,9 +57,7 @@ export const corsErrorHandler = (err: any, req: Request, res: Response, next: Ne
       origin: req.headers.origin,
       timestamp: new Date().toISOString(),
       details: {
-        allowedOrigins: process.env.NODE_ENV === 'production' 
-          ? ['https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app']
-          : ['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'],
+        allowedOrigins: allowedOrigins,
         requestMethod: req.method,
         requestPath: req.path,
         userAgent: req.headers['user-agent']
@@ -112,9 +77,14 @@ export const corsLogging = (req: Request, res: Response, next: NextFunction) => 
   console.log(`[CORS] ${method} ${path} - Origin: ${origin || 'No origin'} - IP: ${req.ip}`);
   
   // Log CORS violations
-  if (origin && !['http://localhost:3000', 'https://barberia-front.vercel.app', 'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'].includes(origin)) {
+  if (origin && !allowedOrigins.includes(origin)) {
     console.warn(`[CORS WARNING] Unusual origin: ${origin} for ${method} ${path}`);
   }
   
   next();
+};
+
+// Función para obtener orígenes permitidos (útil para debugging)
+export const getAllowedOrigins = (): string[] => {
+  return [...allowedOrigins];
 }; 
