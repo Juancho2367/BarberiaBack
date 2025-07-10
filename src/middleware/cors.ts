@@ -38,7 +38,8 @@ const corsOptions = {
     'Origin',
     'Accept',
     'Cache-Control',
-    'X-File-Name'
+    'X-File-Name',
+    'x-request-id'
   ],
   exposedHeaders: ['Content-Length', 'X-Requested-With'],
   maxAge: 86400, // 24 horas
