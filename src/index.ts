@@ -18,6 +18,9 @@ dotenv.config();
 
 const app = express();
 
+// Trust proxy for Vercel deployment
+app.set('trust proxy', 1);
+
 // Get environment-specific configuration
 const envConfig = getEnvironmentConfig();
 
