@@ -9,9 +9,12 @@ import {
   getEnvironmentConfig 
 } from './config/security.js';
 import { corsMiddleware, corsErrorHandler, corsLogging, getAllowedOrigins } from './middleware/cors.js';
-import { publicRouteHandler, getPublicRoutes } from './middleware/publicRoutes.js';
+import { publicRouteHandler, getPublicRoutes, isPublicRoute } from './middleware/publicRoutes.js';
+import { auth } from './middleware/auth.js';
 import appointmentRoutes from './routes/appointments.js';
 import userRoutes from './routes/users.js';
+import barberAvailabilityRoutes from './routes/barberAvailability.js';
+import cronRoutes from './routes/cron.js';
 
 // Load environment variables
 dotenv.config();
@@ -44,11 +47,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'} - IP: ${req.ip}`);
+  console.log(`[${timestamp}] Full URL: ${req.originalUrl}`);
+  console.log(`[${timestamp}] Base URL: ${req.baseUrl}`);
+  console.log(`[${timestamp}] Route path: ${req.route?.path || 'No route'}`);
   next();
 });
-
-// Public routes handler - Must be before any auth middleware
-app.use(publicRouteHandler);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -80,12 +83,19 @@ app.get('/api', (req, res) => {
         '/api/routes-test',
         '/api/debug',
         '/api/users/register',
-        '/api/users/login'
+        '/api/users/login',
+        '/api/barber-availability/weekly-availability'
       ],
       protected: [
         '/api/users/me',
         '/api/users/profile',
-        '/api/appointments'
+        '/api/users',
+        '/api/users/:id',
+        '/api/users/create',
+        '/api/appointments',
+        '/api/barber-availability/set-availability',
+        '/api/barber-availability/availability',
+        '/api/barber-availability/available-slots'
       ]
     },
     cors: {
@@ -152,47 +162,43 @@ app.post('/api/cors-test', (req, res) => {
 app.get('/api/routes-test', (req, res) => {
   res.status(200).json({ 
     message: 'Routes test successful',
-    environment: process.env.NODE_ENV || 'development',
-    publicRoutes: getPublicRoutes(),
-    protectedRoutes: [
-      'GET /api/users/me',
-      'PATCH /api/users/profile',
-      'GET /api/appointments',
-      'POST /api/appointments',
-      'PUT /api/appointments/:id',
-      'DELETE /api/appointments/:id'
-    ],
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Debug endpoint to test all HTTP methods
-app.all('/api/debug', (req, res) => {
-  res.status(200).json({
     method: req.method,
     url: req.url,
     path: req.path,
-    isPublicRoute: getPublicRoutes().includes(req.path),
-    headers: {
-      origin: req.headers.origin,
-      'user-agent': req.headers['user-agent'],
-      'content-type': req.headers['content-type'],
-      authorization: req.headers.authorization ? 'Bearer [HIDDEN]' : undefined
-    },
-    body: req.body,
-    query: req.query,
-    params: req.params,
+    timestamp: new Date().toISOString(),
     cors: {
-      origin: req.headers.origin,
-      allowed: true
-    },
-    timestamp: new Date().toISOString()
+      allowed: true,
+      credentials: true,
+      allowedOrigins: getAllowedOrigins()
+    }
   });
 });
 
-// API Routes
+// Test endpoint for barber availability routes
+app.get('/api/test-barber-routes', (req, res) => {
+  res.status(200).json({
+    message: 'Barber routes test endpoint working',
+    timestamp: new Date().toISOString(),
+    routes: {
+      'GET /api/barber-availability/weekly-availability': 'Should work',
+      'POST /api/barber-availability/set-availability': 'Protected route',
+      'GET /api/barber-availability/availability': 'Protected route',
+      'GET /api/barber-availability/available-slots': 'Protected route'
+    }
+  });
+});
+
+// Public routes handler - Must be BEFORE routes registration
+app.use(publicRouteHandler);
+
+// API Routes - Register BEFORE authentication middleware
 app.use('/api/users', userRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/barber-availability', barberAvailabilityRoutes);
+app.use('/api/cron', cronRoutes);
+
+// Authentication middleware for protected routes - Apply AFTER routes are registered
+app.use(auth);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -206,6 +212,11 @@ app.use('*', (req, res) => {
     protectedRoutes: [
       'GET /api/users/me',
       'PATCH /api/users/profile',
+      'GET /api/users',
+      'GET /api/users/:id',
+      'POST /api/users/create',
+      'PATCH /api/users/:id',
+      'DELETE /api/users/:id',
       'GET /api/appointments',
       'POST /api/appointments',
       'PUT /api/appointments/:id',

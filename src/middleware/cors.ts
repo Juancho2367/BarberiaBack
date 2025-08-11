@@ -1,31 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 
-// Expresión regular para validar orígenes de Vercel
-// Acepta:
-// 1. https://barberia-front.vercel.app (Producción)
-// 2. https://barberia-front-xxxxxxxx.vercel.app (Cualquier vista previa)
-const corsOriginRegex = /^https:\/\/barberia-front(-[a-zA-Z0-9]+)?\.vercel\.app$/;
-
-// Configuración CORS optimizada con regex
+// Configuración CORS simplificada para desarrollo
 const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // Permite solicitudes sin origen (ej. Postman, curl, mobile apps)
-    if (!origin) {
+    // En desarrollo, permite todos los orígenes de localhost
+    if (process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
     
-    // En desarrollo, permite localhost
-    if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) {
+    // En producción, permite solo orígenes específicos
+    const allowedOrigins = [
+      'https://barberia-front.vercel.app',
+      'https://barberia-front-ep01j1af2-juan-davids-projects-3cf28ed7.vercel.app'
+    ];
+    
+    if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     
-    // Valida el origen contra nuestra expresión regular
-    if (corsOriginRegex.test(origin)) {
-      return callback(null, true); // Origen permitido
-    }
-    
-    // Si no coincide, rechazar la solicitud
     console.warn(`CORS blocked request from origin: ${origin}`);
     return callback(new Error('Not allowed by CORS'));
   },
@@ -58,7 +51,7 @@ export const corsErrorHandler = (err: any, req: Request, res: Response, next: Ne
       origin: req.headers.origin,
       timestamp: new Date().toISOString(),
       details: {
-        pattern: corsOriginRegex.toString(),
+        environment: process.env.NODE_ENV,
         requestMethod: req.method,
         requestPath: req.path,
         userAgent: req.headers['user-agent']
@@ -77,8 +70,8 @@ export const corsLogging = (req: Request, res: Response, next: NextFunction) => 
   
   console.log(`[CORS] ${method} ${path} - Origin: ${origin || 'No origin'} - IP: ${req.ip}`);
   
-  // Log CORS violations
-  if (origin && !corsOriginRegex.test(origin) && !origin.startsWith('http://localhost')) {
+  // Log CORS violations only in production
+  if (process.env.NODE_ENV === 'production' && origin && !origin.startsWith('https://barberia-front')) {
     console.warn(`[CORS WARNING] Unusual origin: ${origin} for ${method} ${path}`);
   }
   
@@ -86,9 +79,9 @@ export const corsLogging = (req: Request, res: Response, next: NextFunction) => 
 };
 
 // Función para obtener información de CORS (útil para debugging)
-export const getAllowedOrigins = (): { pattern: string, description: string } => {
+export const getAllowedOrigins = (): { environment: string, description: string } => {
   return {
-    pattern: corsOriginRegex.toString(),
-    description: 'Regex pattern for Vercel frontend URLs (production + preview)'
+    environment: process.env.NODE_ENV || 'development',
+    description: 'Development mode allows all localhost origins'
   };
 }; 

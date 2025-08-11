@@ -10,6 +10,7 @@ const publicRoutes = [
   '/api/debug',
   '/api/users/register',
   '/api/users/login',
+  '/api/users/barbers',
   '/manifest.json',
   '/favicon.ico',
   '/robots.txt',
@@ -30,7 +31,8 @@ export const isPublicRoute = (path: string): boolean => {
     '/api/routes-test',
     '/api/debug',
     '/api/users/register',
-    '/api/users/login'
+    '/api/users/login',
+    '/api/users/barbers'
   ];
   
   return publicPatterns.some(pattern => path.startsWith(pattern));

@@ -1,11 +1,18 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+export interface IServicePrices {
+  haircut: number;
+  haircutWithBeard: number;
+}
+
 export interface IUser extends Document {
   email: string;
   password: string;
   name: string;
+  phone?: string;
   role: 'client' | 'barber' | 'admin';
+  servicePrices?: IServicePrices;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -27,10 +34,24 @@ const userSchema = new Schema<IUser>({
     required: true,
     trim: true
   },
+  phone: {
+    type: String,
+    trim: true
+  },
   role: {
     type: String,
     enum: ['client', 'barber', 'admin'],
     default: 'client'
+  },
+  servicePrices: {
+    haircut: {
+      type: Number,
+      default: 15000 // Precio por defecto para corte de cabello
+    },
+    haircutWithBeard: {
+      type: Number,
+      default: 25000 // Precio por defecto para corte + barba
+    }
   }
 }, {
   timestamps: true
