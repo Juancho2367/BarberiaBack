@@ -16,11 +16,6 @@
       "destination": "/src/index.ts"
     }
   ],
-  "functions": {
-    "src/index.ts": {
-      "maxDuration": 30
-    }
-  },
   "env": {
     "NODE_ENV": "production",
     "VERCEL": "1"
