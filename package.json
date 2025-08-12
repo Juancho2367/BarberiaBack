@@ -13,8 +13,7 @@
     "manage-availability": "tsx src/scripts/manageBarberAvailability.ts",
     "cleanup-past": "tsx src/scripts/cleanupPastAvailability.ts",
     "update-future": "tsx src/scripts/updateFutureAvailability.ts",
-    "auto-maintenance": "tsx src/scripts/autoMaintenance.ts",
-    "vercel-build": "npm run build && echo '✅ Vercel build completed successfully'"
+    "auto-maintenance": "tsx src/scripts/autoMaintenance.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
