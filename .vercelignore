@@ -33,6 +33,10 @@ yarn-error.log*
 *.tmp
 *.temp
 
-# Scripts que no deben ejecutarse en producción
-scripts/
+# Archivos específicos que no deben ejecutarse en producción
 test-regex.js
+test-imports.ts
+
+# Documentación
+*.md
+VERCEL_DEPLOYMENT.md
