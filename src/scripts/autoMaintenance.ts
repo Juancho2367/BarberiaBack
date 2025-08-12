@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import BarberAvailability from '../models/BarberAvailability';
-import Appointment from '../models/Appointment';
-import User from '../models/User';
+import BarberAvailability from '../models/BarberAvailability.js';
+import Appointment from '../models/Appointment.js';
+import User from '../models/User.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -297,7 +297,6 @@ async function autoMaintenance() {
   }
 }
 
-// Ejecutar si se llama directamente
-autoMaintenance();
-
+// NO ejecutar automáticamente - solo exportar la función
+// Esto evita que se ejecute durante el despliegue de Vercel
 export { autoMaintenance };

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import BarberAvailability from '../models/BarberAvailability';
-import User from '../models/User';
+import BarberAvailability from '../models/BarberAvailability.js';
+import User from '../models/User.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

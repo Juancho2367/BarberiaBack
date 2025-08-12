@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import BarberAvailability from '../models/BarberAvailability';
+import BarberAvailability from '../models/BarberAvailability.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

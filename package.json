@@ -14,7 +14,7 @@
     "cleanup-past": "tsx src/scripts/cleanupPastAvailability.ts",
     "update-future": "tsx src/scripts/updateFutureAvailability.ts",
     "auto-maintenance": "tsx src/scripts/autoMaintenance.ts",
-    "vercel-build": "echo 'Server build completed'"
+    "vercel-build": "npm run build && echo '✅ Vercel build completed successfully'"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -37,5 +37,8 @@
     "ts-node": "^10.9.1",
     "tsx": "^4.20.3",
     "typescript": "^5.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

@@ -19,6 +19,9 @@ import cronRoutes from './routes/cron.js';
 // Load environment variables
 dotenv.config();
 
+// Verificar si estamos en producción
+const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+
 const app = express();
 
 // Trust proxy for Vercel deployment
@@ -43,15 +46,17 @@ app.use(corsMiddleware);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request logging middleware for debugging
-app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'} - IP: ${req.ip}`);
-  console.log(`[${timestamp}] Full URL: ${req.originalUrl}`);
-  console.log(`[${timestamp}] Base URL: ${req.baseUrl}`);
-  console.log(`[${timestamp}] Route path: ${req.route?.path || 'No route'}`);
-  next();
-});
+// Request logging middleware for debugging (solo en desarrollo)
+if (!isProduction) {
+  app.use((req, res, next) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'} - IP: ${req.ip}`);
+    console.log(`[${timestamp}] Full URL: ${req.originalUrl}`);
+    console.log(`[${timestamp}] Base URL: ${req.baseUrl}`);
+    console.log(`[${timestamp}] Route path: ${req.route?.path || 'No route'}`);
+    next();
+  });
+}
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -195,7 +200,11 @@ app.use(publicRouteHandler);
 app.use('/api/users', userRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/barber-availability', barberAvailabilityRoutes);
-app.use('/api/cron', cronRoutes);
+
+// Solo registrar rutas cron si no estamos en producción o si se solicita explícitamente
+if (!isProduction || process.env.ENABLE_CRON === 'true') {
+  app.use('/api/cron', cronRoutes);
+}
 
 // Authentication middleware for protected routes - Apply AFTER routes are registered
 app.use(auth);
@@ -236,7 +245,11 @@ app.use(corsErrorHandler);
 // General error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
-  console.error('Stack:', err.stack);
+  
+  // Solo mostrar stack trace en desarrollo
+  if (!isProduction) {
+    console.error('Stack:', err.stack);
+  }
   
   // Rate limit error handling
   if (err.status === 429) {

@@ -3,7 +3,11 @@
   "builds": [
     {
       "src": "src/index.ts",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["src/**/*"],
+        "maxLambdaSize": "15mb"
+      }
     }
   ],
   "rewrites": [
@@ -11,5 +15,14 @@
       "source": "/(.*)",
       "destination": "/src/index.ts"
     }
-  ]
+  ],
+  "functions": {
+    "src/index.ts": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "NODE_ENV": "production",
+    "VERCEL": "1"
+  }
 } 
