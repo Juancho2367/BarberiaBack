@@ -201,10 +201,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/barber-availability', barberAvailabilityRoutes);
 
-// Solo registrar rutas cron si no estamos en producción o si se solicita explícitamente
-if (!isProduction || process.env.ENABLE_CRON === 'true') {
-  app.use('/api/cron', cronRoutes);
-}
+// Registrar rutas cron siempre, pero con control de acceso
+app.use('/api/cron', cronRoutes);
 
 // Authentication middleware for protected routes - Apply AFTER routes are registered
 app.use(auth);
